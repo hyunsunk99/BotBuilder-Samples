@@ -1,0 +1,82 @@
+{
+  "$schema": "https://developer.microsoft.com/en-us/json-schemas/teams/v1.5/MicrosoftTeams.schema.json",
+  "manifestVersion": "1.5",
+  "version": "1.0.0",
+  "id": "53fe93e5-0b50-4c9e-9ff6-66b8db9bb7a3",
+  "packageName": "com.microsoft.teams.sample",
+  "developer": {
+    "name": "Microsoft",
+    "websiteUrl": "https://dev.botframework.com",
+    "privacyUrl": "https://dev.botframework.com",
+    "termsOfUseUrl": "https://dev.botframework.com"
+  },
+  "icons": {
+    "color": "icon-color.png",
+    "outline": "icon-outline.png"
+  },
+  "name": {
+    "short": "Direct Messaging",
+    "full": "Direct Messaging"
+  },
+  "description": {
+    "short": "Direct Messaging",
+    "full": "Direct Messaging"
+  },
+  "accentColor": "#FFFFFF",
+  "composeExtensions": [
+    {
+      "botId": "53fe93e5-0b50-4c9e-9ff6-66b8db9bb7a3",
+      "canUpdateConfiguration": true,
+      "commands":  [
+        {
+          "id": "createCard",
+          "type": "action",
+          "context": [ "compose", "commandBox" ],
+          "description": "Command to run action to create a Card from Compose or Command Box",
+          "title": "Create Message",
+          "parameters": [
+            {
+              "name": "title",
+              "title": "Subject",
+              "description": "Subject for the message",
+              "inputType": "text"
+            },
+            {
+              "name": "text",
+              "title": "Body",
+              "description": "Body for the Message",
+              "inputType": "textarea"
+            }
+          ]
+        },
+        {
+          "id": "SignOutCommand",
+          "type": "action",
+          "title": "Sign Out",
+          "description": "Sign out from authenticated services.",
+          "initialRun": false,
+          "fetchTask": true,
+          "context": [
+            "commandBox",
+            "compose"
+          ],
+          "parameters": [
+            {
+              "name": "param",
+              "title": "param",
+              "description": ""
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "permissions": [
+    "identity"
+  ],
+  "validDomains": [
+    "*.githubusercontent.com",
+    "*.ngrok.io",
+    "*.botframework.com"
+  ]
+}

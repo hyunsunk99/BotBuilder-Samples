@@ -2,7 +2,7 @@
   "$schema": "https://developer.microsoft.com/en-us/json-schemas/teams/v1.5/MicrosoftTeams.schema.json",
   "manifestVersion": "1.5",
   "version": "1.0",
-  "id": "<<YOUR-MICROSOFT-APP-ID>>",
+  "id": "192c2ee7-268e-42c7-ad57-dd865aeb4f65",
   "packageName": "com.microsoft.teams.samples",
   "developer": {
     "name": "Microsoft",
@@ -15,17 +15,17 @@
     "outline": "icon-outline.png"
   },
   "name": {
-    "short": "Preview Messaging Extension",
-    "full": "Microsoft Teams Action Based Messaging Extension with Preview"
+    "short": "Parent Messaging Extension",
+    "full": "Microsoft Teams Action Based Emailing Extension with Preview"
   },
   "description": {
-    "short": "Sample demonstrating an Action Based Messaging Extension with Preview",
-    "full": "Sample Action Messaging Extension built with the Bot Builder SDK demonstrating Preview"
+    "short": "An Action Based Parent Messaging Extension with Preview",
+    "full": "Action Messaging Extension built with the Bots Builder SDK demonstrating Preview"
   },
   "accentColor": "#FFFFFF",
   "bots": [
     {
-      "botId": "<<YOUR-MICROSOFT-APP-ID>>",
+      "botId": "192c2ee7-268e-42c7-ad57-dd865aeb4f65",
       "scopes": [
         "team"
       ]
@@ -33,14 +33,34 @@
   ],
   "composeExtensions": [
     {
-      "botId": "<<YOUR-MICROSOFT-APP-ID>>",
+      "botId": "192c2ee7-268e-42c7-ad57-dd865aeb4f65",
       "canUpdateConfiguration": false,
       "commands": [
         {
           "id": "createWithPreview",
           "type": "action",
-          "title": "Create Card",
-          "description": "Example of creating a Card",
+          "title": "Customized Message",
+          "description": "Launch your device's mail app and customize!",
+          "initialRun": false,
+          "fetchTask": true,
+          "context": [
+            "commandBox",
+            "compose",
+            "message"
+          ],
+          "parameters": [
+            {
+              "name": "param",
+              "title": "param",
+              "description": ""
+            }
+          ]
+        },
+        {
+          "id": "createWithPreview",
+          "type": "action",
+          "title": "Short Message",
+          "description": "Leverage templates for short emails",
           "initialRun": false,
           "fetchTask": true,
           "context": [

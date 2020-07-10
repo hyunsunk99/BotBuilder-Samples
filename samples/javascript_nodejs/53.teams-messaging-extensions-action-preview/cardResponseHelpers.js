@@ -11,7 +11,7 @@ class CardResponseHelpers {
                 value: {
                     card: cardAttachment,
                     height: 450,
-                    title: 'Task Module Fetch Example',
+                    title: 'Short Message Template',
                     url: null,
                     width: 500
                 }

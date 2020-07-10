@@ -31,44 +31,39 @@ class AdaptiveCardHelper {
             ],
             body: [
                 {
-                    text: 'This is an Adaptive Card within a Task Module',
+                    text: "Here's an Email Template",
                     type: 'TextBlock',
                     weight: 'bolder'
                 },
-                { type: 'TextBlock', text: 'Enter text for Question:' },
+                { type: 'TextBlock', text: 'Check Email Recipients:' },
                 {
                     id: 'Question',
-                    placeholder: 'Question text here',
+                    placeholder: 'AP Biology Parents (filter by expanding)',
                     type: 'Input.Text',
                     value: userText
                 },
-                { type: 'TextBlock', text: 'Options for Question:' },
-                { type: 'TextBlock', text: 'Is Multi-Select:' },
+                { type: 'TextBlock', text: 'Email Subject:' },
                 {
-                    choices: [{ title: 'True', value: 'true' }, { title: 'False', value: 'false' }],
+                    id: 'Question',
+                    placeholder: 'e.g. Field Trip Reminder',
+                    type: 'Input.Text',
+                    value: userText
+                },
+                { type: 'TextBlock', text: 'Send to class chat?' },
+                {
+                    choices: [{ title: 'Yes', value: 'true' }, { title: 'No', value: 'false' }],
                     id: 'MultiSelect',
                     isMultiSelect: false,
                     style: 'expanded',
                     type: 'Input.ChoiceSet',
                     value: isMultiSelect ? 'true' : 'false'
                 },
+                { type: 'TextBlock', text: 'Email body' },
                 {
-                    id: 'Option1',
-                    placeholder: 'Option 1 here',
+                    id: 'Question',
+                    placeholder: "e.g. Please remember to sign your child's permission slip for the field trip to the zoo.",
                     type: 'Input.Text',
-                    value: option1
-                },
-                {
-                    id: 'Option2',
-                    placeholder: 'Option 2 here',
-                    type: 'Input.Text',
-                    value: option2
-                },
-                {
-                    id: 'Option3',
-                    placeholder: 'Option 3 here',
-                    type: 'Input.Text',
-                    value: option3
+                    value: userText
                 }
             ],
             type: 'AdaptiveCard',
