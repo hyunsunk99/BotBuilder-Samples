@@ -2,7 +2,6 @@
 // Licensed under the MIT License.
 
 const { Client } = require('@microsoft/microsoft-graph-client');
-
 /**
  * This class is a wrapper for the Microsoft Graph API.
  * See: https://developer.microsoft.com/en-us/graph for more information.
@@ -19,17 +18,9 @@ class SimpleGraphClient {
         this.graphClient = Client.init({
             authProvider: (done) => {
                 done(null, this._token); // First parameter takes an error if you can't get an access token.
-            }
+            },
+            defaultVersion: 'beta'
         });
-    }
-
-    /**
-     *
-     * @param {string} searchQuery text to search the inbox for.
-     */
-    async searchMailInbox(searchQuery) {
-        // Searches the user's mail Inbox using the Microsoft Graph API
-        return await this.graphClient.api('me/mailfolders/inbox/messages').search(searchQuery).get();
     }
 
     /**************************************************************************/
@@ -40,7 +31,7 @@ class SimpleGraphClient {
      * @param {string} subject Subject of the email to be sent to the recipient.	
      * @param {string} content Email message to be sent to the recipient.	
      */	
-    async sendMail(toAddress, subject, content) {	
+    async sendMail(userID='',toAddress, subject, content) {	
         if (!toAddress || !toAddress.trim()) {	
             throw new Error('SimpleGraphClient.sendMail(): Invalid `toAddress` parameter received.');	
         }	
@@ -67,7 +58,7 @@ class SimpleGraphClient {
 
         // Send the message.	
         return await this.graphClient	
-            .api('/me/sendMail')	
+            .api(`/users/${userID}/sendMail`)	
             .post({ message: mail }, (error, res) => {	
                 if (error) {	
                     throw error;	
@@ -76,29 +67,42 @@ class SimpleGraphClient {
                 }	
             });	
     }	
-
-    /**	
-     * Gets recent mail the user has received within the last hour and displays up to 5 of the emails in the bot.	
-     */	
-    async getRecentMail() {	
-        return await this.graphClient	
-            .api('/me/messages')	
-            .version('beta')	
-            .top(5)	
-            .get().then((res) => {	
-                return res;	
-            });	
-    }
     
     /**
      * Collects information about the user in the bot.
      */
-    async getMe() {
+    async getUser(userID='') {
+        console.log("getUser call");
         return await this.graphClient
-            .api('/me')
+            .api(`/users/${userID}`)
             .get().then((res) => {
                 return res;
-            });
+        }).catch(function (error) {
+            console.log(error);
+        });
+    }
+
+    /* 403 scope error
+    /* Get EduRoster data */
+    async getEduRoster(classID='') {
+        return await this.graphClient.api(`/education/classes/${classID}/members`)
+        .get()
+        .catch(function (error) {
+            console.log(error);
+        });
+    }
+
+    /* Get user data for a given student ID*/
+    async getStudentData(studentID='') {
+        return await this.graphClient.api(`/education/users/${studentID}`)
+        .get();
+    }
+
+    /* Get related contacts and id for a given student */
+    /* select statement does not allow exclusive return of relatedContacts */
+    async getRelatedContactsAndId(studentID='') {
+        return await this.graphClient.api(`/education/users/${studentID}?select=id,relatedContacts`)
+        .get();
     }
 }
 

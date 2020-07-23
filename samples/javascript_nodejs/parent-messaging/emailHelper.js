@@ -1,7 +1,6 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
-const { AttachmentLayoutTypes, CardFactory } = require('botbuilder');
 const { SimpleGraphClient } = require('./simpleGraphClient.js');
 
 /**
@@ -10,108 +9,82 @@ const { SimpleGraphClient } = require('./simpleGraphClient.js');
  * for more information about scopes see:
  * https://developer.microsoft.com/en-us/graph/docs/concepts/permissions_reference
  */
-class emailHelper {
+class EmailHelper {
     /**
      * Enable the user to send an email via the bot.
      * @param {TurnContext} context A TurnContext instance containing all the data needed for processing this conversation turn.	
-     * @param {TokenResponse} tokenResponse A response that includes a user token.	
+     * @param {Token} token A user token.	
      * @param {string} emailAddress The email address of the recipient.	
      */	
-    static async sendMail(context, tokenResponse, emailAddress) {	
+    static async sendMail(context, token, emailAddress) {	
         if (!context) {	
             throw new Error('OAuthHelpers.sendMail(): `context` cannot be undefined.');	
         }	
-        if (!tokenResponse) {	
-            throw new Error('OAuthHelpers.sendMail(): `tokenResponse` cannot be undefined.');	
+        if (!token) {	
+            throw new Error('OAuthHelpers.sendMail(): `token` cannot be undefined.');	
         }	
 
-        const client = new SimpleGraphClient(tokenResponse.token);	
-        const me = await client.getMe();	
+        // AAD object id of current user
+        const userID = context.activity.from.aadObjectId;
+        console.dir(userID);
+        
+        // Pull in the data from Microsoft Graph.
+        const client = new SimpleGraphClient(token);
+        const user = await client.getUser(userID);
+        console.log(user.displayName);
 
-        await client.sendMail(	
+        await client.sendMail(
+            userID, 
             emailAddress,	
             'Message from a bot!',	
-            `Hi there! I had this message sent from a bot. - Your friend, ${ me.displayName }`	
+            `Hi there! I had this message sent from a bot. - Your friend, ${ user.displayName }`	
         );	
-        await context.sendActivity(`I sent a message to ${ emailAddress } from your account.`);	
     }	
 
     /**	
      * Send the user their Graph Display Name from the bot.
      * @param {TurnContext} context A TurnContext instance containing all the data needed for processing this conversation turn.
-     * @param {TokenResponse} tokenResponse A response that includes a user token.
+     * @param {Token} token A user token.
      */
-    static async listMe(context, tokenResponse) {
+    static async listMe(context, token) {
         if (!context) {
             throw new Error('OAuthHelpers.listMe(): `context` cannot be undefined.');
         }
-        if (!tokenResponse) {
-            throw new Error('OAuthHelpers.listMe(): `tokenResponse` cannot be undefined.');
+        if (!token) {
+            throw new Error('OAuthHelpers.listMe(): `token` cannot be undefined.');
         }
 
         // Pull in the data from Microsoft Graph.
-        const client = new SimpleGraphClient(tokenResponse.token);
+        const client = new SimpleGraphClient(token);
         const me = await client.getMe();
 
-        await context.sendActivity(`You are ${ me.displayName }.`);
+        return `${me.displayName}`;
+        // await context.sendActivity(`You are ${ me.displayName }.`);
     }
 
     /**
      * Send the user their Graph Email Address from the bot.
      * @param {TurnContext} context A TurnContext instance containing all the data needed for processing this conversation turn.
-     * @param {TokenResponse} tokenResponse A response that includes a user token.
+     * @param {Tokene} token A user token.
      */
-    static async listEmailAddress(context, tokenResponse) {
+    static async listEmailAddress(context, token) {
         if (!context) {
             throw new Error('OAuthHelpers.listEmailAddress(): `context` cannot be undefined.');
         }
-        if (!tokenResponse) {
-            throw new Error('OAuthHelpers.listEmailAddress(): `tokenResponse` cannot be undefined.');
+        if (!token) {
+            throw new Error('OAuthHelpers.listEmailAddress(): `token` cannot be undefined.');
         }
 
+        // AAD object id of current user
+        const userID = context.activity.from.aadObjectId;
+        console.dir(userID);
+        
         // Pull in the data from Microsoft Graph.
-        const client = new SimpleGraphClient(tokenResponse.token);
-        const me = await client.getMe();
+        const client = new SimpleGraphClient(token);
+        const user = await client.getUser(userID);
 
-        await context.sendActivity(`Your email: ${ me.mail }.`);
-    }
-    /**
-     * Lists the user's collected email.
-     * @param {TurnContext} context A TurnContext instance containing all the data needed for processing this conversation turn.
-     * @param {TokenResponse} tokenResponse A response that includes a user token.
-     */
-    static async listRecentMail(context, tokenResponse) {
-        if (!context) {
-            throw new Error('OAuthHelpers.listRecentMail(): `context` cannot be undefined.');
-        }
-        if (!tokenResponse) {
-            throw new Error('OAuthHelpers.listRecentMail(): `tokenResponse` cannot be undefined.');
-        }
-        var client = new SimpleGraphClient(tokenResponse.token);
-        var response = await client.getRecentMail();
-        var messages = response.value;
-        if (Array.isArray(messages)) {
-            let numberOfMessages = messages.length;
-            if (messages.length > 5) {
-                numberOfMessages = 5;
-            }
-            const reply = { attachments: [], attachmentLayout: AttachmentLayoutTypes.Carousel };
-            for (let cnt = 0; cnt < numberOfMessages; cnt++) {
-                const mail = messages[cnt];
-                const card = CardFactory.heroCard(
-                    mail.subject,
-                    mail.bodyPreview,
-                    [{ alt: 'Outlook Logo', url: 'https://botframeworksamples.blob.core.windows.net/samples/OutlookLogo.jpg' }],
-                    [],
-                    { subtitle: `${ mail.from.emailAddress.name } <${ mail.from.emailAddress.address }>` }
-                );
-                reply.attachments.push(card);
-            }
-            await context.sendActivity(reply);
-        } else {
-            await context.sendActivity('Unable to find any recent unread mail.');
-        }
+        return `${user.mail}`;
     }
 }
 
-exports.emailHelper = emailHelper;
+exports.EmailHelper = EmailHelper;

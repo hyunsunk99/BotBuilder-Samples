@@ -3,11 +3,11 @@
   "manifestVersion": "1.5",
   "version": "1.0.0",
   "id": "53fe93e5-0b50-4c9e-9ff6-66b8db9bb7a3",
-  "packageName": "com.microsoft.teams.sample",
+  "packageName": "com.microsoft.teams.samples",
   "developer": {
     "name": "Microsoft",
     "websiteUrl": "https://dev.botframework.com",
-    "privacyUrl": "https://dev.botframework.com",
+    "privacyUrl": "https://privacy.microsoft.com",
     "termsOfUseUrl": "https://dev.botframework.com"
   },
   "icons": {
@@ -23,36 +23,47 @@
     "full": "Direct Messaging"
   },
   "accentColor": "#FFFFFF",
+  "bots": [
+    {
+      "botId": "53fe93e5-0b50-4c9e-9ff6-66b8db9bb7a3",
+      "scopes": [
+        "team"
+      ]
+    }
+  ],
   "composeExtensions": [
     {
       "botId": "53fe93e5-0b50-4c9e-9ff6-66b8db9bb7a3",
-      "canUpdateConfiguration": true,
+      "canUpdateConfiguration": false,
       "commands":  [
         {
-          "id": "createCard",
+          "id": "EmailAuthCommand",
           "type": "action",
-          "context": [ "compose", "commandBox" ],
-          "description": "Command to run action to create a Card from Compose or Command Box",
-          "title": "Create Message",
+          "title": "Email Parents/Guardians",
+          "description": "Compose and preview email",
+          "initialRun": false,
+          "fetchTask": true,
+          "context": [
+              "compose"
+          ],
           "parameters": [
-            {
-              "name": "title",
-              "title": "Subject",
-              "description": "Subject for the message",
-              "inputType": "text"
-            },
-            {
-              "name": "text",
-              "title": "Body",
-              "description": "Body for the Message",
-              "inputType": "textarea"
-            }
-          ]
+              {
+                  "name": "param",
+                  "title": "param",
+                  "description": ""
+              }
+          ],
+          "taskInfo": {
+              "title": "Auth Test",
+              "width": "medium",
+              "height": "medium",
+              "url": "https://example.com"
+          }
         },
         {
           "id": "SignOutCommand",
           "type": "action",
-          "title": "Sign Out",
+          "title": "Sign Out of Email",
           "description": "Sign out from authenticated services.",
           "initialRun": false,
           "fetchTask": true,
@@ -72,7 +83,8 @@
     }
   ],
   "permissions": [
-    "identity"
+    "identity",
+    "messageTeamMembers"
   ],
   "validDomains": [
     "*.githubusercontent.com",

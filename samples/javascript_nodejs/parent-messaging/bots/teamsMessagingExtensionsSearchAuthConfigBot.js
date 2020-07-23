@@ -1,252 +1,142 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
-const { TeamsActivityHandler, CardFactory, ActionTypes } = require('botbuilder');
-const axios = require('axios');
-const querystring = require('querystring');
-const { SimpleGraphClient } = require('..\\simpleGraphClient.js');
-const { emailHelper } = require('../emailHelper.js');
+const { TeamsActivityHandler, TeamsInfo, MessageFactory } = require('botbuilder');
+const { AuthHelper } = require('../authHelper.js');
+const { AdaptiveCardHelper } = require('../adaptiveCardHelper.js');
+const { CardResponseHelpers } = require('../cardResponseHelpers.js');
+const { SimpleGraphClient } = require('../simpleGraphClient.js');
 
+// Removed user configuration settings (possibly add back for preferred mode of comm [Email, SMS, etc.])
 // User Configuration property name
-const USER_CONFIGURATION = 'userConfigurationProperty';
+// const USER_CONFIGURATION = 'userConfigurationProperty';
 
 class TeamsMessagingExtensionsSearchAuthConfigBot extends TeamsActivityHandler {
-    /**
-     *
-     * @param {UserState} User state to persist configuration settings
-     */
-    constructor(userState) {
+    constructor() {
         super();
-        // Creates a new user property accessor.
-        // See https://aka.ms/about-bot-state-accessors to learn more about the bot state and state accessors.
-        this.userConfigurationProperty = userState.createProperty(USER_CONFIGURATION);
         this.connectionName = process.env.ConnectionName;
-        this.userState = userState;
-    }
+    };
 
-    /**
-     * Override the ActivityHandler.run() method to save state changes after the bot logic completes.
-     */
-    async run(context) {
-        await super.run(context);
+    // REMOVED USER CONFIG SETTINGS (consider re-implementing later)
+    // UPDATE canUpdateConfiguration in manifest.json if re-implementing
+    // /**
+    //  * Override the ActivityHandler.run() method to save state changes after the bot logic completes.
+    //  */
+    // async run(context) {
+    //     await super.run(context);
 
-        // Save state changes
-        await this.userState.saveChanges(context);
-    }
-
-    async handleTeamsMessagingExtensionConfigurationQuerySettingUrl(context, query) {
-        // The user has requested the Messaging Extension Configuration page settings url.
-        const userSettings = await this.userConfigurationProperty.get(context, '');
-        const escapedSettings = userSettings ? querystring.escape(userSettings) : '';
-
-        return {
-            composeExtension: {
-                type: 'config',
-                suggestedActions: {
-                    actions: [
-                        {
-                            type: ActionTypes.OpenUrl,
-                            value: `${ process.env.SiteUrl }/public/searchSettings.html?settings=${ escapedSettings }`
-                        }
-                    ]
-                }
-            }
-        };
-    }
-
-    async handleTeamsMessagingExtensionConfigurationSetting(context, settings) {
-        // When the user submits the settings page, this event is fired.
-        if (settings.state != null) {
-            await this.userConfigurationProperty.set(context, settings.state);
-        }
-    }
-
-    async handleTeamsMessagingExtensionQuery(context, query) {
-        const searchQuery = query.parameters[0].value;
-        const attachments = [];
-        const userSettings = await this.userConfigurationProperty.get(context, '');
-
-        if (userSettings && userSettings.includes('email')) {
-            // When the Bot Service Auth flow completes, the query.State will contain a magic code used for verification.
-            const magicCode = (query.state && Number.isInteger(Number(query.state))) ? query.state : '';
-            const tokenResponse = await context.adapter.getUserToken(context, this.connectionName, magicCode);
-
-            if (!tokenResponse || !tokenResponse.token) {
-                // There is no token, so the user has not signed in yet.
-
-                // Retrieve the OAuth Sign in Link to use in the MessagingExtensionResult Suggested Actions
-                const signInLink = await context.adapter.getSignInLink(context, this.connectionName);
-
-                return {
-                    composeExtension: {
-                        type: 'auth',
-                        suggestedActions: {
-                            actions: [{
-                                type: 'openUrl',
-                                value: signInLink,
-                                title: 'Bot Service OAuth'
-                            }]
-                        }
-                    }
-                };
-            }
-
-            // send email 
-            const email = await emailHelper.sendMail(context, tokenResponse, 'hyunsunk@heidik87.onmicrosoft.com');
-
-            // The user is signed in, so use the token to create a Graph Clilent and search their email
-            const graphClient = new SimpleGraphClient(tokenResponse.token);
-            const messages = await graphClient.searchMailInbox(searchQuery);
-
-            // Here we construct a ThumbnailCard for every attachment, and provide a HeroCard which will be
-            // displayed if the user selects that item.
-            messages.value.forEach(msg => {
-                const heroCard = CardFactory.heroCard(msg.from.emailAddress.address, msg.body.content, null, null, { subtitle: msg.subject });
-                const preview = CardFactory.thumbnailCard(msg.from.emailAddress.address,
-                    `${ msg.subject } <br />  ${ msg.bodyPreview.substring(0, 100) }`,
-                    ['https://raw.githubusercontent.com/microsoft/botbuilder-samples/master/docs/media/OutlookLogo.jpg']);
-                attachments.push({ contentType: heroCard.contentType, content: heroCard.content, preview: preview });
-            });
-        } else {
-            const response = await axios.get(`http://registry.npmjs.com/-/v1/search?${ querystring.stringify({ text: searchQuery, size: 8 }) }`);
-
-            response.data.objects.forEach(obj => {
-                const heroCard = CardFactory.heroCard(obj.package.name);
-                const preview = CardFactory.heroCard(obj.package.name);
-                preview.content.tap = { type: 'invoke', value: { description: obj.package.description } };
-                attachments.push({ ...heroCard, preview });
-            });
-        }
-
-        return {
-            composeExtension: {
-                type: 'result',
-                attachmentLayout: 'list',
-                attachments: attachments
-            }
-        };
-    }
-
-    async handleTeamsMessagingExtensionSelectItem(context, obj) {
-        return {
-            composeExtension: {
-                type: 'result',
-                attachmentLayout: 'list',
-                attachments: [CardFactory.thumbnailCard(obj.description)]
-            }
-        };
-    }
-
-    async handleTeamsMessagingExtensionFetchTask(context, action) {
-        if (action.commandId === 'SignOutCommand') {
-            const adapter = context.adapter;
-            await adapter.signOutUser(context, this.connectionName);
-
-            const card = CardFactory.adaptiveCard({
-                version: '1.0.0',
-                type: 'AdaptiveCard',
-                body: [
-                    {
-                        type: 'TextBlock',
-                        text: 'You have been signed out.'
-                    }
-                ],
-                actions: [
-                    {
-                        type: 'Action.Submit',
-                        title: 'Close',
-                        data: {
-                            key: 'close'
-                        }
-                    }
-                ]
-            });
-
-            return {
-                task: {
-                    type: 'continue',
-                    value: {
-                        card: card,
-                        heigth: 200,
-                        width: 400,
-                        title: 'Adaptive Card: Inputs'
-                    }
-                }
-            };
-        }
-    }
-
-    async handleTeamsMessagingExtensionSubmitAction(context, action) {
-        /*******************************************************************************/
-        /* added from bot #51 teamsMessagingExtensionsActionBot.js */
-        switch (action.commandId) {
-            case 'createCard': {
-                return createCardCommand(context, action);
-            }
-            
-            default:
-                // if User closes modal after signing out
-                return {};
-        }
-        
-        /*******************************************************************************/
-    }
-}
-
-/*******************************************************************************/
-/* added from bot #51 teamsMessagingExtensionsActionBot.js */
-async function createCardCommand(context, action) {
-    // The user has chosen to create a card by choosing the 'Create Card' context menu command.
-    const data = action.data;
-    const heroCard = CardFactory.heroCard(data.title, data.text);
-    heroCard.content.subtitle = data.subTitle;
-    const attachment = { contentType: heroCard.contentType, content: heroCard.content, preview: heroCard };
-
-    // // if email enabled, send email
-    // const userSettings = await this.userConfigurationProperty.get(context, '');
-    // if (userSettings && userSettings.includes('email')) {
-    //     console.log(userSettings);
-    //     const email = sendSimpleEmail(context);
+    //     // Save state changes
+    //     await this.userState.saveChanges(context);
     // }
 
-    return {
-        composeExtension: {
-            type: 'result',
-            attachmentLayout: 'list',
-            attachments: [
-                attachment
-            ]
-        }
-    };
-}
+    // async handleTeamsMessagingExtensionConfigurationQuerySettingUrl(context, query) {
+    //     // The user has requested the Messaging Extension Configuration page settings url.
+    //     const userSettings = await this.userConfigurationProperty.get(context, '');
+    //     const escapedSettings = userSettings ? querystring.escape(userSettings) : '';
 
-/*******************************************************************************/
-async function sendSimpleEmail(context) {
-    // const magicCode = (query.state && Number.isInteger(Number(query.state))) ? query.state : '';
-    const tokenResponse = await context.adapter.getUserToken(context, this.connectionName);
+    //     return {
+    //         composeExtension: {
+    //             type: 'config',
+    //             suggestedActions: {
+    //                 actions: [
+    //                     {
+    //                         type: ActionTypes.OpenUrl,
+    //                         value: `${ process.env.SiteUrl }/public/searchSettings.html?settings=${ escapedSettings }`
+    //                     }
+    //                 ]
+    //             }
+    //         }
+    //     };
+    // }
 
-    if (!tokenResponse || !tokenResponse.token) {
-        // There is no token, so the user has not signed in yet.
+    // async handleTeamsMessagingExtensionConfigurationSetting(context, settings) {
+    //     // When the user submits the settings page, this event is fired.
+    //     if (settings.state != null) {
+    //         await this.userConfigurationProperty.set(context, settings.state);
+    //     }
+    
+    
+    // }
 
-        // Retrieve the OAuth Sign in Link to use in the MessagingExtensionResult Suggested Actions
-        const signInLink = await context.adapter.getSignInLink(context, this.connectionName);
-
-        return {
-            composeExtension: {
-                type: 'auth',
-                suggestedActions: {
-                    actions: [{
-                        type: 'openUrl',
-                        value: signInLink,
-                        title: 'Bot Service OAuth'
-                    }]
-                }
+    async handleTeamsMessagingExtensionFetchTask(context, action) {
+        switch(action.commandId)
+        {
+            // Command chosen by user
+            case "EmailAuthCommand": {
+                return await AuthHelper.handleEmailAuthCommand(context,action,this.connectionName);
             }
-        };
+            
+            case "SignOutCommand":
+                return await AuthHelper.handleSignOutCommand(context, this.connectionName);
+            
+            default: 
+                return null;
+        }
     }
 
-    // The user is signed in, so use the token to send an email
-    await emailHelper.sendMail(context, tokenResponse, 'hyunsunk@heidik87.onmicrosoft.com');
+    handleTeamsMessagingExtensionSubmitAction(context, action) {
+        console.log('submitted');
+        console.log(action.commandId);
+        if (action.commandId==="SignOutCommand") {
+            // Close Sign Out confirmation modal 
+            return {};
+        }
 
+        // Message template submitted
+        const submittedData = action.data;
+
+        // TEMPORARY SENDER EMAIL AND RECIPIENT GROUP
+        // MODIFY TO HANDLE USER MODS FOR RECIPIENTS (filtering, adding)
+        const senderEmail = 'hyunsunk@heidik87.onmicrosoft.com'
+        // Retrieve recipient group ID (hard code for now)
+        const recipientGroupID = 'AP Bio Parents (click to expand)'
+
+        const adaptiveCard = AdaptiveCardHelper.createAdaptiveCardAttachment(submittedData, senderEmail, recipientGroupID);
+        // Display submitted data for preview 
+        return CardResponseHelpers.toMessagingExtensionBotMessagePreviewResponse(adaptiveCard);
+    }
+
+    handleTeamsMessagingExtensionBotMessagePreviewEdit(context, action) {
+        // User chose to edit from preview
+        console.log('previewEdit');
+        // The data has been returned to the bot in the action structure.
+        const submitData = AdaptiveCardHelper.toSubmitExampleData(action);
+
+        console.log('data submitted');
+        // This is a preview edit call and so this time we want to re-create the adaptive card editor.
+        const adaptiveCard = AdaptiveCardHelper.createAdaptiveCardEditor(submitData.SenderEmail, submitData.RecipientGroupID, submitData.Subject, submitData.Body, submitData.SendToChat);
+        console.log('card created');
+        return CardResponseHelpers.toTaskModuleResponse(adaptiveCard);
+    }
+
+    handleTeamsMessagingExtensionBotMessagePreviewSend(context, action) {
+        console.log('previewSend');
+        // The data has been returned to the bot in the action structure.
+        const submitData = AdaptiveCardHelper.toSubmitExampleData(action);
+
+        // ADD CONDITION FOR IFSENDTOSTUDENTS
+        // if user selected to send to class channel:
+        // This is a send so we are done and we will create the adaptive card editor.
+        // const adaptiveCard = AdaptiveCardHelper.createAdaptiveCardAttachment(submitData);
+        // const responseActivity = { type: 'message', attachments: [adaptiveCard] };
+        // await context.sendActivity(responseActivity);
+
+        if (action.commandId ==='EmailAuthCommand') {
+            // User has submitted + confirmed email
+            const adaptiveCard = AdaptiveCardHelper.createEmailSentCard();
+            return CardResponseHelpers.toSignOutResponse(adaptiveCard);
+            // const responseActivity = { type: 'message', attachments: [adaptiveCard] }; //"Your email has been sent"
+            // await context.sendActivity(responseActivity);
+        }
+    }
+
+    async handleTeamsMessagingExtensionCardButtonClicked(context, obj) {
+        // If the adaptive card was added to the compose window (by either the handleTeamsMessagingExtensionSubmitAction or
+        // handleTeamsMessagingExtensionBotMessagePreviewSend handler's return values) the submit values will come in here.
+        console.log('answered');
+        const reply = MessageFactory.text('handleTeamsMessagingExtensionCardButtonClicked Value: ' + JSON.stringify(context.activity.value));
+        await context.sendActivity(reply);
+    }
 }
+
 module.exports.TeamsMessagingExtensionsSearchAuthConfigBot = TeamsMessagingExtensionsSearchAuthConfigBot;
