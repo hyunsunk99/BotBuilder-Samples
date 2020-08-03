@@ -7,13 +7,18 @@ const { SimpleGraphClient } = require('./simpleGraphClient.js');
 const axios = require('axios');
 
 class AuthHelper {
-    static async handleEmailAuthCommand(context, action, connectionName) {
 
-        // temp hard code
+    /**
+     * @param {string} tenant AAD Tenant ID of current user
+     * Return a token containing app-only permissions for admin-approved scopes: 
+     * EduRoster.Read.All, Mail.Read, Mail.Send, User.Read.All (as of 7/23/20) 
+     * */
+    static async getUserToken(context) {
         const tenant = context.activity.conversation.tenantId;
         const grantType = 'client_credentials';
-        const AADappID = 'ae7e6f3c-c15e-4d80-bba0-5ba655e00e4d';  
         const scopeURL = 'https://graph.microsoft.com/.default';
+        // temp hard code for AAD app details 
+        const AADappID = 'ae7e6f3c-c15e-4d80-bba0-5ba655e00e4d';  
         const clientSecret = '_~3hiB4dzE14Gs~9ll7F.bO7u3sGWqan~F';
 
         const params = new URLSearchParams();
@@ -50,19 +55,22 @@ class AuthHelper {
             console.log('CONFIG: ')
             console.dir(error.config);
         });
+        return tokenResponse.data.access_token;
+    }
 
-        const token = tokenResponse.data.access_token;
+    /**
+     * @param {Object} context Current chat context 
+     * Handle the 'Email' command with user authentication (ie context-based token retrieval)
+     * */
+    static async handleEmailAuthCommand(context) {
+        const token = await this.getUserToken(context);
         console.log(token);
-        // SIMPLE EMAIL WORKING  
-        await EmailHelper.sendMail(context, token, 'heidik87@gmail.com');
-
         // Retrieve user email after authentication
         const senderEmail = await EmailHelper.listEmailAddress(context, token);
 
-        const client = new SimpleGraphClient(token);	
-
         // Retrieve team name 
         var teamName = '';
+        var classID = '';
         var teamDetails;
         try {
             teamDetails = await TeamsInfo.getTeamDetails(context);
@@ -72,54 +80,68 @@ class AuthHelper {
         }
         if (teamDetails) {
             teamName = `${ teamDetails.name}`;
+            classID = teamDetails.aadGroupId;
         }
 
-        // Return either a sign-in modal (user not verified) or the email template (verified)
-
-        // Retrieve recipient group ID (hard code for now)
+        // Form recipient group ID
         const recipientGroupID = teamName+' Parents & Guardians';
-        const teamID = teamDetails.aadGroupId;
 
-        // Retrieve team members 
-        var memberIds = [];
-        var chatMembers;
+        // Pull in EDU data from Microsoft Graph.
+        const client = new SimpleGraphClient(token);
+
+        var classIDsAndRoles = '';
+        var eduRoster;
         try {
-            chatMembers = await TeamsInfo.getPagedMembers(context);
+            eduRoster = await client.getEduRoster(classID); // Return id and primaryRole if it exists
         } catch (e) {
             console.log(e);
             throw e;
         }
-        if (chatMembers) {
-            for (let i = 0; i <teamDetails.memberCount;i++) {
-                memberIds.push(chatMembers.members[i].aadObjectId);
-            }
+        if (eduRoster) {
+            classIDsAndRoles = eduRoster.value;
         }
 
-        var parentEmails = [];
-        for (let memberId of memberIds) {
+        // Store student IDs
+        const studentIDs = [];
+        for (let memberIDAndRole of classIDsAndRoles) {
+            if (memberIDAndRole.primaryRole) {
+                if (memberIDAndRole.primaryRole === 'student') {
+                    studentIDs.push(memberIDAndRole.id);
+                }
+            } 
+        }
+
+        var formattedContactNames=[];
+        var emailListString=''
+
+        for (let studentID of studentIDs) {
+            // Retrieve parent/guardian emails and names as a subset of a student's relatedContacts
             // graph query does not allow exclusive select for relatedContacts
-            const relatedContactsAndId = await client.getRelatedContactsAndId(memberId);
+            const relatedContactsAndId = await client.getRelatedContactsAndId(studentID);
             if (relatedContactsAndId){
                 if (relatedContactsAndId.relatedContacts.length > 0) {
                     const relatedContacts = relatedContactsAndId.relatedContacts; // student's related contacts
                     for (let i=0; i < relatedContacts.length; i++) {
                         if (relatedContacts[i].relationship === 'parent' || relatedContacts[i].relationship === 'guardian') {
-                            parentEmails.push(relatedContacts[i].emailAddress);
+                            // contactEmails.push(relatedContacts[i].emailAddress);
+                            emailListString+=relatedContacts[i].emailAddress + ",";
+                            // correct JSON format for Adaptive Card Choice Set 
+                            formattedContactNames.push({
+                                title: relatedContacts[i].displayName,
+                                value: relatedContacts[i].emailAddress
+                            });
+
                         }
                     }
                 }
             } 
         }
-        console.log(parentEmails);
 
-        const adaptiveCard = AdaptiveCardHelper.createAdaptiveCardEditor(senderEmail, recipientGroupID);
+        console.log(formattedContactNames);
+        console.log(emailListString);
+
+        const adaptiveCard = AdaptiveCardHelper.createAdaptiveCardEditor(senderEmail, recipientGroupID, formattedContactNames, emailListString);
         return CardResponseHelpers.toTaskModuleResponse(adaptiveCard);
-    }
-
-    static async handleSignOutCommand(context, connectionName) {
-        await context.adapter.signOutUser(csontext, connectionName);
-        const adaptiveCard = AdaptiveCardHelper.createSignOutCard();
-        return CardResponseHelpers.toSignOutResponse(adaptiveCard);
     }
 }
 exports.AuthHelper = AuthHelper;

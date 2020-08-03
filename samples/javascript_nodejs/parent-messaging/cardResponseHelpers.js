@@ -11,7 +11,7 @@ class CardResponseHelpers {
                 value: {
                     card: cardAttachment,
                     height: 450,
-                    title: 'Task Module Fetch Example',
+                    title: 'Email Editor',
                     url: null,
                     width: 500
                 }
@@ -24,20 +24,6 @@ class CardResponseHelpers {
             composeExtension: {
                 activityPreview: MessageFactory.attachment(cardAttachment, null, null, InputHints.ExpectingInput),
                 type: 'botMessagePreview'
-            }
-        };
-    }
-
-    static toSignOutResponse(cardAttachment) {
-        return {
-            task: {
-                type: 'continue',
-                value: {
-                    card: cardAttachment,
-                    heigth: 200,
-                    width: 400,
-                    title: 'Adaptive Card: Inputs'
-                }
             }
         };
     }

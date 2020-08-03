@@ -7,14 +7,21 @@ class AdaptiveCardHelper {
     static toSubmitExampleData(action) {
         const activityPreview = action.botActivityPreview[0];
         const attachmentContent = activityPreview.attachments[0].content;
+        console.log('adaptiveCardHelper - SUBMIT EXAMPLE DATA')
+        console.dir(attachmentContent);
+        const subject = attachmentContent.body[0];
         const facts = attachmentContent.body[1].facts;
-        const subject = attachmentContent.body[2];
-        const body = attachmentContent.body[3];
-        const sendToChat = attachmentContent.body[4];
-        console.log(sendToChat.value);
+        const allRecipients = attachmentContent.body[2]; // array with all recipients in ChoiceSet format
+        const selectedRecipients = attachmentContent.body[3].text==='undefined' ? '' : attachmentContent.body[3].text; // string containing selected recipients
+        console.log("SELECTED");
+        console.log(selectedRecipients)
+        const body = attachmentContent.body[4];
+        const sendToChat = attachmentContent.body[5];
         return {
             SenderEmail: facts[0].value,
             RecipientGroupID: facts[1].value,
+            AllRecipients: allRecipients.text,
+            SelectedRecipients: selectedRecipients,
             Subject: subject.text,
             Body: body.text,
             SendToChat: sendToChat.value
@@ -22,44 +29,116 @@ class AdaptiveCardHelper {
     }
 
     // UPDATE senderEmail with User's verified account
-    static createAdaptiveCardEditor(senderEmail=null, recipientGroupID=null, messageSubject=null, messageBody = null, sendToChat = false) {
+    static createAdaptiveCardEditor(senderEmail=null, recipientGroupID=null, contactEmails=[], emailListString='', messageSubject=null, messageBody = null, sendToChat = false) {
         return CardFactory.adaptiveCard({
+            version: '1.1',
             actions: [
                 {
                     data: {
                         submitLocation: 'messagingExtensionFetchTask'
                     },
-                    title: 'Submit',
+                    title: 'Preview',
                     type: 'Action.Submit'
-                }
+                },
+
             ],
             body: [
                 {
-                    id: 'Facts',
-                    type:'FactSet',
-                    separator: true,
-                    facts: [
-                        { 
-                            title: "From:", 
-                            value: senderEmail // verified user's email
+                    type: 'ColumnSet',
+                    columns: [
+                        {
+                            type: 'Column',
+                            width: 'auto',
+                            items: [
+                                {
+                                    type:'TextBlock',
+                                    text: "From: ",
+                                    weight: 'bolder'
+                                },
+                                {
+                                    type:'TextBlock',
+                                    text: "To: ",
+                                    weight: 'bolder'
+                                }
+                            ]
                         },
-                        { 
-                            title: "To:", 
-                            value: recipientGroupID, // related contacts for current channel members
-                        },
+                        {
+                            type: 'Column',
+                            width: 'stretch',
+                            items: [
+                                {
+                                    type:'TextBlock',
+                                    text: senderEmail,
+                                    horizontalAlignment: 'right'
+                                },
+                                {
+                                    type: "ActionSet",
+                                    actions: [
+                                        {
+                                            type: "Action.ShowCard",
+                                            title: recipientGroupID,
+                                            card: {
+                                                type: "AdaptiveCard",
+                                                body: [
+                                                    {
+                                                        type: 'ColumnSet',
+                                                        columns: [
+                                                            {
+                                                                type: 'Column',
+                                                                width: 10,
+                                                                items: [
+                                                                    {
+                                                                        type:'TextBlock',
+                                                                        text: ""
+                                                                    }
+                                                                ]
+                                                            },
+                                                            {
+                                                                type: 'Column',
+                                                                width: 15,
+                                                                items: [
+                                                                    {
+                                                                        type: "TextBlock",
+                                                                        text: "Include: ",
+                                                                    },
+                                                                    {
+                                                                        type: "Input.ChoiceSet",
+                                                                        id: 'recipientList',
+                                                                        style: 'expanded',
+                                                                        value: emailListString,
+                                                                        choices: contactEmails,
+                                                                        isMultiSelect: true
+                                                                    }
+                                                                ]
+                                                            },
+                                                        ]
+                                                    }
+                                                ]
+                                            }
+                                        }
+                                    ]
+                                }
+                            ]
+                        }
                     ]
                 },
-                { type: 'TextBlock', text: 'Email Subject:' },
                 {
-                    id: 'Subject',
+                    id: 'allContacts',
+                    type: 'Input.Text',
+                    value: JSON.stringify(contactEmails),
+                    isVisible: false
+                },
+                { type: 'TextBlock', text: 'Email Subject:', wrap: true },
+                {
+                    id: 'subject',
                     placeholder: 'e.g. Field Trip Rescheduled',
                     type: 'Input.Text',
                     value: messageSubject
                 },
                 { type: 'TextBlock', text: 'Email body' },
                 {
-                    id: 'Body',
-                    placeholder: "e.g. Our trip to Seattle U's marine biology lab has been postponed until December 1st.",
+                    id: 'body',
+                    placeholder: "e.g. Our trip to Seattle U's lab facility has been postponed...",
                     type: 'Input.Text',
                     value: messageBody,
                     isMultiline: true,
@@ -79,9 +158,27 @@ class AdaptiveCardHelper {
     }
 
     static createAdaptiveCardAttachment(data, senderEmail, recipientGroupID) {
+        // const allContactsFormatted = data.allContacts.split(",");
+        console.log("ADAPTIVE CARD");
+
+        // if list was never expanded, recipientList === undefined
+        var recipientList = data.recipientList;
+        console.log(recipientList);
+
+        // if no recipients were selected (ie user did not click/expand group)
+        if (!recipientList) {
+            const allContactsParsed = JSON.parse(data.allContacts);
+            var allContactsString = '';
+            for (let contactInfo of allContactsParsed) {
+                allContactsString+=contactInfo.value + ',';
+            }
+            console.log(allContactsString);
+            recipientList=allContactsString;
+        }
+
         return CardFactory.adaptiveCard({
             body: [
-                { text: "Here's a preview of your message", type: 'TextBlock', weight: 'bolder' },
+                { text: `${ data.subject }`, type: 'TextBlock', id: 'Subject', weight: 'bolder', wrap: true},
                 {
                     type:'FactSet',
                     separator: true,
@@ -96,35 +193,13 @@ class AdaptiveCardHelper {
                         },
                     ]
                 },
-                { text: `${ data.Subject }`, type: 'TextBlock', id: 'Subject', weight: 'bolder' },
-                { text: `${ data.Body }`, type: 'TextBlock', id: 'Body', isMultiline: true, maxLength: 0, wrap: true },
-                { value: `${ data.sendToChat}`, type: 'Input.Toggle', id: 'SendToChat', isVisible: 'false'}
+                { text: `${ data.allContacts }`, type: 'TextBlock', id: 'AllContacts', isVisible: false},
+                { text: recipientList, type: 'TextBlock', id: 'RecipientList', isVisible: false},
+                { text: `${ data.body }`, type: 'TextBlock', id: 'Body', isMultiline: true, maxLength: 0, wrap: true, separator: true },
+                { value: `${ data.sendToChat}`, type: 'Input.Toggle', id: 'SendToChat', isVisible: false}
             ],
             type: 'AdaptiveCard',
             version: '1.0'
-        });
-    }
-
-    // Simple sign out modal 
-    static createSignOutCard() {
-        return CardFactory.adaptiveCard({
-            version: '1.0.0',
-            type: 'AdaptiveCard',
-            body: [
-                {
-                    type: 'TextBlock',
-                    text: 'You have been signed out.'
-                }
-            ],
-            actions: [
-                {
-                    type: 'Action.Submit',
-                    title: 'Close',
-                    data: {
-                        key: 'close'
-                    }
-                }
-            ]
         });
     }
 

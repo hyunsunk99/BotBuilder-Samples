@@ -33,7 +33,7 @@ class SimpleGraphClient {
      */	
     async sendMail(userID='',toAddress, subject, content) {	
         if (!toAddress || !toAddress.trim()) {	
-            throw new Error('SimpleGraphClient.sendMail(): Invalid `toAddress` parameter received.');	
+            throw new Error(`SimpleGraphClient.sendMail(): Invalid toAddress parameter ${toAddress} received.`);	
         }	
         if (!subject || !subject.trim()) {	
             throw new Error('SimpleGraphClient.sendMail(): Invalid `subject`  parameter received.');	
@@ -45,7 +45,7 @@ class SimpleGraphClient {
         // Create the email.	
         const mail = {	
             body: {	
-                content: content, // `Hi there! I had this message sent from a bot. - Your friend, ${ graphData.displayName }!`,	
+                content: content, 	
                 contentType: 'Text'	
             },	
             subject: subject, // `Message from a bot!`,	
@@ -82,10 +82,9 @@ class SimpleGraphClient {
         });
     }
 
-    /* 403 scope error
     /* Get EduRoster data */
     async getEduRoster(classID='') {
-        return await this.graphClient.api(`/education/classes/${classID}/members`)
+        return await this.graphClient.api(`/education/classes/${classID}/members?$select=id,primaryRole`)
         .get()
         .catch(function (error) {
             console.log(error);

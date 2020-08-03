@@ -15,22 +15,14 @@
     "outline": "icon-outline.png"
   },
   "name": {
-    "short": "Direct Messaging",
-    "full": "Direct Messaging"
+    "short": "Family Messaging",
+    "full": "Family Messaging"
   },
   "description": {
-    "short": "Direct Messaging",
-    "full": "Direct Messaging"
+    "short": "Family Messaging",
+    "full": "Family Messaging"
   },
   "accentColor": "#FFFFFF",
-  "bots": [
-    {
-      "botId": "53fe93e5-0b50-4c9e-9ff6-66b8db9bb7a3",
-      "scopes": [
-        "team"
-      ]
-    }
-  ],
   "composeExtensions": [
     {
       "botId": "53fe93e5-0b50-4c9e-9ff6-66b8db9bb7a3",
@@ -40,7 +32,7 @@
           "id": "EmailAuthCommand",
           "type": "action",
           "title": "Email Parents/Guardians",
-          "description": "Compose and preview email",
+          "description": "Compose and preview an email for parents/guardians",
           "initialRun": false,
           "fetchTask": true,
           "context": [
@@ -52,31 +44,24 @@
                   "title": "param",
                   "description": ""
               }
-          ],
-          "taskInfo": {
-              "title": "Auth Test",
-              "width": "medium",
-              "height": "medium",
-              "url": "https://example.com"
-          }
+          ]
         },
         {
-          "id": "SignOutCommand",
+          "id": "TwilioTextCommand",
           "type": "action",
-          "title": "Sign Out of Email",
-          "description": "Sign out from authenticated services.",
+          "title": "Text Parents/Guardians",
+          "description": "Text parents/guardians via SMS",
           "initialRun": false,
           "fetchTask": true,
           "context": [
-            "commandBox",
-            "compose"
+              "compose"
           ],
           "parameters": [
-            {
-              "name": "param",
-              "title": "param",
-              "description": ""
-            }
+              {
+                  "name": "param",
+                  "title": "param",
+                  "description": ""
+              }
           ]
         }
       ]

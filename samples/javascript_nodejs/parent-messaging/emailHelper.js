@@ -1,6 +1,6 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
-
+const { TeamsInfo } = require('botbuilder');
 const { SimpleGraphClient } = require('./simpleGraphClient.js');
 
 /**
@@ -16,29 +16,31 @@ class EmailHelper {
      * @param {Token} token A user token.	
      * @param {string} emailAddress The email address of the recipient.	
      */	
-    static async sendMail(context, token, emailAddress) {	
+    static async sendMailToParentsAndGuardians(context, token, recipientString, subject, body) {	
         if (!context) {	
-            throw new Error('OAuthHelpers.sendMail(): `context` cannot be undefined.');	
+            throw new Error('EmailHelper.sendMailToParentsAndGuardians(): `context` cannot be undefined.');	
         }	
         if (!token) {	
-            throw new Error('OAuthHelpers.sendMail(): `token` cannot be undefined.');	
+            throw new Error('EmailHelper.sendMailToParentsAndGuardians(): `token` cannot be undefined.');	
         }	
 
         // AAD object id of current user
         const userID = context.activity.from.aadObjectId;
-        console.dir(userID);
         
-        // Pull in the data from Microsoft Graph.
-        const client = new SimpleGraphClient(token);
-        const user = await client.getUser(userID);
-        console.log(user.displayName);
+        const contactEmails = recipientString.split(",");
+        console.log(contactEmails);
 
-        await client.sendMail(
-            userID, 
-            emailAddress,	
-            'Message from a bot!',	
-            `Hi there! I had this message sent from a bot. - Your friend, ${ user.displayName }`	
-        );	
+        const client = new SimpleGraphClient(token);
+
+        // Loop through parent/guardian emails and send email to each
+        for (let contactEmail of contactEmails) {
+            await client.sendMail(
+                userID, 
+                contactEmail,	
+                `${subject}`,	
+                `${body}`	
+            );	
+        }
     }	
 
     /**	
@@ -77,7 +79,6 @@ class EmailHelper {
 
         // AAD object id of current user
         const userID = context.activity.from.aadObjectId;
-        console.dir(userID);
         
         // Pull in the data from Microsoft Graph.
         const client = new SimpleGraphClient(token);

@@ -5,7 +5,9 @@ const { TeamsActivityHandler, TeamsInfo, MessageFactory } = require('botbuilder'
 const { AuthHelper } = require('../authHelper.js');
 const { AdaptiveCardHelper } = require('../adaptiveCardHelper.js');
 const { CardResponseHelpers } = require('../cardResponseHelpers.js');
-const { SimpleGraphClient } = require('../simpleGraphClient.js');
+const { EmailHelper } = require('../emailHelper.js');
+
+
 
 // Removed user configuration settings (possibly add back for preferred mode of comm [Email, SMS, etc.])
 // User Configuration property name
@@ -14,82 +16,64 @@ const { SimpleGraphClient } = require('../simpleGraphClient.js');
 class TeamsMessagingExtensionsSearchAuthConfigBot extends TeamsActivityHandler {
     constructor() {
         super();
-        this.connectionName = process.env.ConnectionName;
+        this.twilioAccountSid = process.env.TwilioAccountSid;
+        this.twilioAuthToken = process.env.TwilioAuthToken;
+        this.TwilioClient = require('twilio')(this.twilioAccountSid, this.twilioAuthToken);
     };
-
-    // REMOVED USER CONFIG SETTINGS (consider re-implementing later)
-    // UPDATE canUpdateConfiguration in manifest.json if re-implementing
-    // /**
-    //  * Override the ActivityHandler.run() method to save state changes after the bot logic completes.
-    //  */
-    // async run(context) {
-    //     await super.run(context);
-
-    //     // Save state changes
-    //     await this.userState.saveChanges(context);
-    // }
-
-    // async handleTeamsMessagingExtensionConfigurationQuerySettingUrl(context, query) {
-    //     // The user has requested the Messaging Extension Configuration page settings url.
-    //     const userSettings = await this.userConfigurationProperty.get(context, '');
-    //     const escapedSettings = userSettings ? querystring.escape(userSettings) : '';
-
-    //     return {
-    //         composeExtension: {
-    //             type: 'config',
-    //             suggestedActions: {
-    //                 actions: [
-    //                     {
-    //                         type: ActionTypes.OpenUrl,
-    //                         value: `${ process.env.SiteUrl }/public/searchSettings.html?settings=${ escapedSettings }`
-    //                     }
-    //                 ]
-    //             }
-    //         }
-    //     };
-    // }
-
-    // async handleTeamsMessagingExtensionConfigurationSetting(context, settings) {
-    //     // When the user submits the settings page, this event is fired.
-    //     if (settings.state != null) {
-    //         await this.userConfigurationProperty.set(context, settings.state);
-    //     }
-    
-    
-    // }
 
     async handleTeamsMessagingExtensionFetchTask(context, action) {
         switch(action.commandId)
         {
             // Command chosen by user
             case "EmailAuthCommand": {
-                return await AuthHelper.handleEmailAuthCommand(context,action,this.connectionName);
+                return await AuthHelper.handleEmailAuthCommand(context);
             }
-            
-            case "SignOutCommand":
-                return await AuthHelper.handleSignOutCommand(context, this.connectionName);
+
+            case "TwilioTextCommand": {
+                console.log(this.twilioAccountSid);
+                await this.TwilioClient.messages
+                    .create({
+                        body: 'This thing on?',
+                        from: '+14044424990',
+                        to: '+12015750442'
+                    })
+                    .then(message => console.log(message.sid));
+
+                console.log("SMS sent");
+            }
             
             default: 
                 return null;
         }
     }
 
-    handleTeamsMessagingExtensionSubmitAction(context, action) {
+    async handleTeamsMessagingExtensionSubmitAction(context, action) {
+        // User has submitted template
         console.log('submitted');
         console.log(action.commandId);
-        if (action.commandId==="SignOutCommand") {
-            // Close Sign Out confirmation modal 
-            return {};
+
+        const token = await AuthHelper.getUserToken(context);
+        
+        const senderEmail = await EmailHelper.listEmailAddress(context, token);
+
+        // Retrieve team name 
+        var teamName = '';
+        var teamDetails;
+        try {
+            teamDetails = await TeamsInfo.getTeamDetails(context);
+        } catch (e) {
+            console.log(e);
+            throw e;
         }
+        if (teamDetails) {
+            teamName = `${ teamDetails.name}`;
+        }
+
+        // Form recipient group ID
+        const recipientGroupID = teamName+' Parents & Guardians';
 
         // Message template submitted
         const submittedData = action.data;
-
-        // TEMPORARY SENDER EMAIL AND RECIPIENT GROUP
-        // MODIFY TO HANDLE USER MODS FOR RECIPIENTS (filtering, adding)
-        const senderEmail = 'hyunsunk@heidik87.onmicrosoft.com'
-        // Retrieve recipient group ID (hard code for now)
-        const recipientGroupID = 'AP Bio Parents (click to expand)'
 
         const adaptiveCard = AdaptiveCardHelper.createAdaptiveCardAttachment(submittedData, senderEmail, recipientGroupID);
         // Display submitted data for preview 
@@ -101,18 +85,26 @@ class TeamsMessagingExtensionsSearchAuthConfigBot extends TeamsActivityHandler {
         console.log('previewEdit');
         // The data has been returned to the bot in the action structure.
         const submitData = AdaptiveCardHelper.toSubmitExampleData(action);
+        console.log(submitData);
+
+        // var contactEmails = [];
+        const selectedRecipients = submitData.SelectedRecipients ? submitData.SelectedRecipients:submitData.AllRecipients;
+
+        const allContactsFormatted = JSON.parse(submitData.AllRecipients);
 
         console.log('data submitted');
         // This is a preview edit call and so this time we want to re-create the adaptive card editor.
-        const adaptiveCard = AdaptiveCardHelper.createAdaptiveCardEditor(submitData.SenderEmail, submitData.RecipientGroupID, submitData.Subject, submitData.Body, submitData.SendToChat);
+        const adaptiveCard = AdaptiveCardHelper.createAdaptiveCardEditor(submitData.SenderEmail, submitData.RecipientGroupID, allContactsFormatted, selectedRecipients, submitData.Subject, submitData.Body, submitData.SendToChat);
         console.log('card created');
         return CardResponseHelpers.toTaskModuleResponse(adaptiveCard);
     }
 
-    handleTeamsMessagingExtensionBotMessagePreviewSend(context, action) {
+    async handleTeamsMessagingExtensionBotMessagePreviewSend(context, action) {
         console.log('previewSend');
         // The data has been returned to the bot in the action structure.
         const submitData = AdaptiveCardHelper.toSubmitExampleData(action);
+
+        console.log(submitData);
 
         // ADD CONDITION FOR IFSENDTOSTUDENTS
         // if user selected to send to class channel:
@@ -123,8 +115,14 @@ class TeamsMessagingExtensionsSearchAuthConfigBot extends TeamsActivityHandler {
 
         if (action.commandId ==='EmailAuthCommand') {
             // User has submitted + confirmed email
+            const token = await AuthHelper.getUserToken(context);
+
+            console.log(submitData.SelectedRecipients);
+            await EmailHelper.sendMailToParentsAndGuardians(context, token, submitData.SelectedRecipients, submitData.Subject, submitData.Body);
+
+            /* **** TROUBLESHOOT HERE FOR PROPER MODAL **** */
             const adaptiveCard = AdaptiveCardHelper.createEmailSentCard();
-            return CardResponseHelpers.toSignOutResponse(adaptiveCard);
+            return CardResponseHelpers.toEmailSentResponse(adaptiveCard);
             // const responseActivity = { type: 'message', attachments: [adaptiveCard] }; //"Your email has been sent"
             // await context.sendActivity(responseActivity);
         }
