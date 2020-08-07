@@ -17,9 +17,9 @@ class AuthHelper {
         const tenant = context.activity.conversation.tenantId;
         const grantType = 'client_credentials';
         const scopeURL = 'https://graph.microsoft.com/.default';
-        // temp hard code for AAD app details 
-        const AADappID = 'ae7e6f3c-c15e-4d80-bba0-5ba655e00e4d';  
-        const clientSecret = '_~3hiB4dzE14Gs~9ll7F.bO7u3sGWqan~F';
+        // AAD app details 
+        const AADappID = process.env.AADappId;  
+        const clientSecret = process.env.AADAppPassword;
 
         const params = new URLSearchParams();
         params.append('grant_type', grantType);
@@ -65,6 +65,7 @@ class AuthHelper {
     static async handleEmailAuthCommand(context) {
         const token = await this.getUserToken(context);
         console.log(token);
+
         // Retrieve user email after authentication
         const senderEmail = await EmailHelper.listEmailAddress(context, token);
 

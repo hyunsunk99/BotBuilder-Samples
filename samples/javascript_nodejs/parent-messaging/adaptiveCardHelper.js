@@ -28,7 +28,14 @@ class AdaptiveCardHelper {
         };
     }
 
-    // UPDATE senderEmail with User's verified account
+    // fields for modal embedded w/ OWA iframe
+    // static createAdaptiveCardEditor(senderEmail=null, recipientGroupID=null, contactEmails=[], emailListString='', messageSubject=null, messageBody = null, sendToChat = false) {
+    //     // example draft ID for an email currently in this tenant's drafts 
+    //     const draftId = "AAMkADY1YmVmY2I4LWVmMzQtNDUzMi1hNjg1LTRiZjI3MjY0NWZjNQBGAAAAAACzJIP-4jG6Qo3BvDLFznWABwDZNhZqXLh7R5QRe-_fqo6YAAAAAAEPAADZNhZqXLh7R5QRe-_fqo6YAAAcqcAQAAA=";
+    //     const outlookOrigin = 'https://outlook.office.com';
+    // }
+
+    // return adaptive card editor with recipients pre-populated
     static createAdaptiveCardEditor(senderEmail=null, recipientGroupID=null, contactEmails=[], emailListString='', messageSubject=null, messageBody = null, sendToChat = false) {
         return CardFactory.adaptiveCard({
             version: '1.1',
@@ -143,7 +150,8 @@ class AdaptiveCardHelper {
                     value: messageBody,
                     isMultiline: true,
                     maxLength: 0,
-                    wrap: true
+                    wrap: true,
+                    height: 150
                 },
                 {
                     title: "Send to class chat",

@@ -48,7 +48,7 @@ class SimpleGraphClient {
                 content: content, 	
                 contentType: 'Text'	
             },	
-            subject: subject, // `Message from a bot!`,	
+            subject: subject, 	
             toRecipients: [{	
                 emailAddress: {	
                     address: toAddress	
@@ -68,6 +68,86 @@ class SimpleGraphClient {
             });	
     }	
     
+    /**	
+     * Drafts an email on the user's behalf.	
+     * @param {string} userID ID of signed-in sender	
+     * @param {string} toAddresses Email addresses of recipients.	
+     * @param {string} ccAddresses Email addresses of CC'ed.	
+     * @param {string} bccAddresses Email addresses of BCC'ed.	
+     * @param {string} subject Subject of the email to be sent to the recipient.	
+     * @param {string} content Email message to be sent to the recipient.	
+     */	
+    async draftMessage(userID, toAddresses, ccAddresses, bccAddresses, subject='', content='') {	
+        if (!userID || !toAddress.trim()) {	
+            throw new Error(`SimpleGraphClient.sendMail(): Invalid userID parameter ${userID} received.`);	
+        }	
+        // if (!toAddress || !toAddresses.trim()) {	
+        //     throw new Error(`SimpleGraphClient.sendMail(): Invalid toAddress parameter ${toAddress} received.`);	
+        // }	
+        // if (!subject || !subject.trim()) {	
+        //     throw new Error('SimpleGraphClient.sendMail(): Invalid `subject` parameter received.');	
+        // }	
+        // if (!content || !content.trim()) {	
+        //     throw new Error('SimpleGraphClient.sendMail(): Invalid `content` parameter received.');	
+        // }	
+
+        // Create the email.	
+        const message = {	
+            body: {	
+                content: content, 	
+                contentType: 'Text'	
+            },	
+            subject: subject
+        };	
+
+        // Populate direct recipients
+        for (let toAddress of toAddresses) {
+            message["toRecipients"].append(
+                {
+                    emailAddress: {
+                        address: toAddress.emailAddress,
+                        name: toAddress.displayName
+                    }
+                }
+            );
+        }
+
+        // Populate CC'ed recipients
+        for (let ccAddress of ccAddresses) {
+            message["ccRecipients"].append(
+                {
+                    emailAddress: {
+                        address: ccAddress.emailAddress,
+                        name: ccAddress.displayName
+                    }
+                }
+            );
+        }
+
+        // Populate BCC'ed recipients
+        for (let bccAddress of bccAddresses) {
+            message["bccRecipients"].append(
+                {
+                    emailAddress: {
+                        address: bccAddress.emailAddress,
+                        name: bccAddress.displayNameaddress
+                    }
+                }
+            );
+        }
+
+        // Post the message.	
+        return await this.graphClient	
+            .api(`/users/${userID}/messages`)	
+            .post({ message }, (error, res) => {	
+                if (error) {	
+                    throw error;	
+                } else {	
+                    return res;	
+                }	
+            });	
+    }	
+
     /**
      * Collects information about the user in the bot.
      */

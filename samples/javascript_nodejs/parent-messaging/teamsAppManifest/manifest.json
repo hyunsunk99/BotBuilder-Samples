@@ -74,6 +74,7 @@
   "validDomains": [
     "*.githubusercontent.com",
     "*.ngrok.io",
-    "*.botframework.com"
+    "*.botframework.com",
+    "*.office.com"
   ]
 }
