@@ -1,8 +1,6 @@
-# Teams Search Auth Config Bot
+# Teams Family Messaging Bot
 
-Bot Framework v4 sample for Teams expands the [50.teams-messaging-extensions-search](https://github.com/microsoft/BotBuilder-Samples/tree/master/samples/javascript_nodejs/50.teams-messaging-extensions-search) sample to include a configuration page and Bot Service authentication.
-
-This bot has been created using [Bot Framework](https://dev.botframework.com), it shows how to use a Messaging Extension configuration page, as well as how to sign in from a search Messaging Extension.
+This Family Messaging bot for Teams builds on [Bot Framework](https://dev.botframework.com) v4 samples to enable educators to access parent/guardian contacts from O365 data populated by School Data Sync (SDS). This app leverages the MS Graph API and prior work by the "Share To Outlook" team to enable calling an OWA modal with SSO authentication and sending an email from the tenant account, all from within Teams. 
 
 ## Prerequisites
 
@@ -18,10 +16,10 @@ the Teams service needs to call into the bot.
 1) Clone the repository
 
     ```bash
-    git clone https://github.com/Microsoft/botbuilder-samples.git
+    git clone https://github.com/hyunsunk99/botbuilder-samples.git
     ```
 
-1) In a terminal, navigate to `samples/javascript_nodejs/52.teams-messaging-extensions-search-auth-config`
+1) In a terminal, navigate to `samples/javascript_nodejs/family-messaging`
 
 1) Install modules
 
