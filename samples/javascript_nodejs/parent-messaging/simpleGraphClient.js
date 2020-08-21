@@ -77,8 +77,8 @@ class SimpleGraphClient {
      * @param {string} subject Subject of the email to be sent to the recipient.	
      * @param {string} content Email message to be sent to the recipient.	
      */	
-    async draftMessage(userID, toAddresses, ccAddresses, bccAddresses, subject='', content='') {	
-        if (!userID || !toAddress.trim()) {	
+    async draftMessageAndGetID(userID, toAddresses, ccAddresses, bccAddresses, subject='', content='') {	
+        if (!userID || !userID.trim()) {	
             throw new Error(`SimpleGraphClient.sendMail(): Invalid userID parameter ${userID} received.`);	
         }	
         // if (!toAddress || !toAddresses.trim()) {	
@@ -97,12 +97,16 @@ class SimpleGraphClient {
                 content: content, 	
                 contentType: 'Text'	
             },	
-            subject: subject
+            subject: subject,
+            toRecipients: [],
+            ccRecipients: [],
+            bccRecipients: [],
         };	
 
         // Populate direct recipients
         for (let toAddress of toAddresses) {
-            message["toRecipients"].append(
+            console.log(toAddress);
+            message["toRecipients"].push(
                 {
                     emailAddress: {
                         address: toAddress.emailAddress,
@@ -112,9 +116,12 @@ class SimpleGraphClient {
             );
         }
 
+        console.log("DRAFTING: ");
+        console.dir(message);
+        console.dir(message.toRecipients);
         // Populate CC'ed recipients
         for (let ccAddress of ccAddresses) {
-            message["ccRecipients"].append(
+            message["ccRecipients"].push(
                 {
                     emailAddress: {
                         address: ccAddress.emailAddress,
@@ -126,7 +133,7 @@ class SimpleGraphClient {
 
         // Populate BCC'ed recipients
         for (let bccAddress of bccAddresses) {
-            message["bccRecipients"].append(
+            message["bccRecipients"].push(
                 {
                     emailAddress: {
                         address: bccAddress.emailAddress,
@@ -137,15 +144,9 @@ class SimpleGraphClient {
         }
 
         // Post the message.	
-        return await this.graphClient	
-            .api(`/users/${userID}/messages`)	
-            .post({ message }, (error, res) => {	
-                if (error) {	
-                    throw error;	
-                } else {	
-                    return res;	
-                }	
-            });	
+        return await this.graphClient.api(`/users/${userID}/messages`)	
+            .post( message)
+            .then((data) => data.id);
     }	
 
     /**
@@ -153,6 +154,7 @@ class SimpleGraphClient {
      */
     async getUser(userID='') {
         console.log("getUser call");
+        console.log("User ID: " + userID);
         return await this.graphClient
             .api(`/users/${userID}`)
             .get().then((res) => {

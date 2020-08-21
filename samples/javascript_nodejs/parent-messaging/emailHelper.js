@@ -26,9 +26,9 @@ class EmailHelper {
 
         // AAD object id of current user
         const userID = context.activity.from.aadObjectId;
-        
+
         const contactEmails = recipientString.split(",");
-        console.log(contactEmails);
+        // console.log(contactEmails);
 
         const client = new SimpleGraphClient(token);
 
@@ -61,7 +61,6 @@ class EmailHelper {
         const me = await client.getMe();
 
         return `${me.displayName}`;
-        // await context.sendActivity(`You are ${ me.displayName }.`);
     }
 
     /**

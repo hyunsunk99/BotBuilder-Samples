@@ -64,6 +64,100 @@ class AuthHelper {
      * */
     static async handleEmailAuthCommand(context) {
         const token = await this.getUserToken(context);
+        console.log("OWA COMMAND TOKEN: ");
+        console.log(token);
+
+        // Retrieve user email after authentication
+        const senderEmail = await EmailHelper.listEmailAddress(context, token);
+
+        // Retrieve team name 
+        var teamName = '';
+        var classID = '';
+        var teamDetails;
+        try {
+            teamDetails = await TeamsInfo.getTeamDetails(context);
+        } catch (e) {
+            console.log(e);
+            throw e;
+        }
+        if (teamDetails) {
+            teamName = `${ teamDetails.name}`;
+            classID = teamDetails.aadGroupId;
+        }
+
+        // Form recipient group ID
+        const recipientGroupID = teamName+' Parents & Guardians';
+
+        // Pull in EDU data from Microsoft Graph.
+        const client = new SimpleGraphClient(token);
+
+        var classIDsAndRoles = '';
+        var eduRoster;
+        try {
+            eduRoster = await client.getEduRoster(classID); // Return id and primaryRole if it exists
+        } catch (e) {
+            console.log(e);
+            throw e;
+        }
+        if (eduRoster) {
+            classIDsAndRoles = eduRoster.value;
+        }
+
+        // Store student IDs
+        const studentIDs = [];
+        for (let memberIDAndRole of classIDsAndRoles) {
+            if (memberIDAndRole.primaryRole) {
+                if (memberIDAndRole.primaryRole === 'student') {
+                    studentIDs.push(memberIDAndRole.id);
+                }
+            } 
+        }
+
+        // Save addresses for Outlook draft
+        var toAddresses=[];
+        var ccAddresses=[];
+        var bccAddresses=[];
+
+        for (let studentID of studentIDs) {
+            // Retrieve parent/guardian emails and names as a subset of a student's relatedContacts
+            // graph query does not allow exclusive select for relatedContacts
+            const relatedContactsAndId = await client.getRelatedContactsAndId(studentID);
+            if (relatedContactsAndId){
+                if (relatedContactsAndId.relatedContacts.length > 0) {
+                    const relatedContacts = relatedContactsAndId.relatedContacts; // student's related contacts
+                    for (let i=0; i < relatedContacts.length; i++) {
+                        if (relatedContacts[i].relationship === 'parent' || relatedContacts[i].relationship === 'guardian') {
+                            toAddresses.push({
+                                emailAddress: relatedContacts[i].emailAddress,
+                                displayName: relatedContacts[i].displayName
+                            });
+                        }
+                    }
+                }
+            } 
+        }
+
+        // Create Outlook draft via Graph 
+        const userID = context.activity.from.aadObjectId;
+        let draftID;
+        try {
+            draftID = await client.draftMessageAndGetID(userID, toAddresses, ccAddresses, bccAddresses, '', ''); 
+        } catch (e) {
+            console.log(e);
+            throw e;
+        }
+       
+        console.log("DRAFT ID: " + draftID);
+        return CardResponseHelpers.toEmailCommandResponse(draftID);
+    }
+
+    /**
+     * @param {Object} context Current chat context 
+     * Handle the 'Teams' command with user authentication (ie context-based token retrieval)
+     * */
+    static async handleTeamsCommand(context) {
+        const token = await this.getUserToken(context);
+        console.log("Teams COMMAND TOKEN: ");
         console.log(token);
 
         // Retrieve user email after authentication
@@ -137,10 +231,7 @@ class AuthHelper {
                 }
             } 
         }
-
-        console.log(formattedContactNames);
-        console.log(emailListString);
-
+        
         const adaptiveCard = AdaptiveCardHelper.createAdaptiveCardEditor(senderEmail, recipientGroupID, formattedContactNames, emailListString);
         return CardResponseHelpers.toTaskModuleResponse(adaptiveCard);
     }

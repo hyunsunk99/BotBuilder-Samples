@@ -10,7 +10,7 @@ const restify = require('restify');
 // Import required bot services.
 // See https://aka.ms/bot-services to learn more about the different parts of a bot.
 const { BotFrameworkAdapter, UserState, MemoryStorage } = require('botbuilder');
-const { TeamsMessagingExtensionsSearchAuthConfigBot } = require('./bots/teamsMessagingExtensionsSearchAuthConfigBot');
+const { TeamsFamilyMessagingBot } = require('./bots/TeamsFamilyMessagingBot');
 
 // Read botFilePath and botFileSecret from .env file.
 const ENV_FILE = path.join(__dirname, '.env');
@@ -51,7 +51,7 @@ const memoryStorage = new MemoryStorage();
 const userState = new UserState(memoryStorage);
 
 // Create the bot that will handle incoming messages.
-const bot = new TeamsMessagingExtensionsSearchAuthConfigBot(userState);
+const bot = new TeamsFamilyMessagingBot(userState);
 
 // Create HTTP server.
 const server = restify.createServer();
@@ -66,7 +66,8 @@ server.post('/api/messages', (req, res) => {
     });
 });
 
-// Serve up static files in the public directory (namely: searchSettings.html)
+// not currently serving static content 
+// Serve up static files in the public directory (namely: owaModal.html and owaModal.js)
 server.get('/public/*', restify.plugins.serveStatic({
     directory: __dirname
 }));

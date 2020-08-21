@@ -23,6 +23,14 @@
     "full": "Family Messaging"
   },
   "accentColor": "#FFFFFF",
+  "bots": [
+    {
+      "botId": "53fe93e5-0b50-4c9e-9ff6-66b8db9bb7a3",
+      "scopes": [
+        "team"
+      ]
+    }
+  ],
   "composeExtensions": [
     {
       "botId": "53fe93e5-0b50-4c9e-9ff6-66b8db9bb7a3",
@@ -31,8 +39,8 @@
         {
           "id": "EmailAuthCommand",
           "type": "action",
-          "title": "Email Parents/Guardians",
-          "description": "Compose and preview an email for parents/guardians",
+          "title": "Email Family",
+          "description": "Compose, preview and send an email",
           "initialRun": false,
           "fetchTask": true,
           "context": [
@@ -47,10 +55,10 @@
           ]
         },
         {
-          "id": "TwilioTextCommand",
+          "id": "TeamsCommand",
           "type": "action",
-          "title": "Text Parents/Guardians",
-          "description": "Text parents/guardians via SMS",
+          "title": "Teams Message Family",
+          "description": "Chat parents/guardians via Teams",
           "initialRun": false,
           "fetchTask": true,
           "context": [
@@ -76,5 +84,9 @@
     "*.ngrok.io",
     "*.botframework.com",
     "*.office.com"
-  ]
+  ],
+  "webApplicationInfo": {
+    "id": "ae7e6f3c-c15e-4d80-bba0-5ba655e00e4d",
+    "resource": "api://2ccd2b408bd6.ngrok.io/ae7e6f3c-c15e-4d80-bba0-5ba655e00e4d"
+  }
 }

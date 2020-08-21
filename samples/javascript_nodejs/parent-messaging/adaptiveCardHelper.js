@@ -7,14 +7,14 @@ class AdaptiveCardHelper {
     static toSubmitExampleData(action) {
         const activityPreview = action.botActivityPreview[0];
         const attachmentContent = activityPreview.attachments[0].content;
-        console.log('adaptiveCardHelper - SUBMIT EXAMPLE DATA')
-        console.dir(attachmentContent);
+        // console.log('adaptiveCardHelper - SUBMIT EXAMPLE DATA')
+        // console.dir(attachmentContent);
         const subject = attachmentContent.body[0];
         const facts = attachmentContent.body[1].facts;
         const allRecipients = attachmentContent.body[2]; // array with all recipients in ChoiceSet format
         const selectedRecipients = attachmentContent.body[3].text==='undefined' ? '' : attachmentContent.body[3].text; // string containing selected recipients
-        console.log("SELECTED");
-        console.log(selectedRecipients)
+        // console.log("SELECTED");
+        // console.log(selectedRecipients)
         const body = attachmentContent.body[4];
         const sendToChat = attachmentContent.body[5];
         return {
@@ -27,13 +27,6 @@ class AdaptiveCardHelper {
             SendToChat: sendToChat.value
         };
     }
-
-    // fields for modal embedded w/ OWA iframe
-    // static createAdaptiveCardEditor(senderEmail=null, recipientGroupID=null, contactEmails=[], emailListString='', messageSubject=null, messageBody = null, sendToChat = false) {
-    //     // example draft ID for an email currently in this tenant's drafts 
-    //     const draftId = "AAMkADY1YmVmY2I4LWVmMzQtNDUzMi1hNjg1LTRiZjI3MjY0NWZjNQBGAAAAAACzJIP-4jG6Qo3BvDLFznWABwDZNhZqXLh7R5QRe-_fqo6YAAAAAAEPAADZNhZqXLh7R5QRe-_fqo6YAAAcqcAQAAA=";
-    //     const outlookOrigin = 'https://outlook.office.com';
-    // }
 
     // return adaptive card editor with recipients pre-populated
     static createAdaptiveCardEditor(senderEmail=null, recipientGroupID=null, contactEmails=[], emailListString='', messageSubject=null, messageBody = null, sendToChat = false) {
@@ -92,7 +85,7 @@ class AdaptiveCardHelper {
                                                         columns: [
                                                             {
                                                                 type: 'Column',
-                                                                width: 10,
+                                                                width: 2,
                                                                 items: [
                                                                     {
                                                                         type:'TextBlock',
@@ -102,7 +95,7 @@ class AdaptiveCardHelper {
                                                             },
                                                             {
                                                                 type: 'Column',
-                                                                width: 15,
+                                                                width: 1,
                                                                 items: [
                                                                     {
                                                                         type: "TextBlock",
@@ -171,7 +164,7 @@ class AdaptiveCardHelper {
 
         // if list was never expanded, recipientList === undefined
         var recipientList = data.recipientList;
-        console.log(recipientList);
+        // console.log(recipientList);
 
         // if no recipients were selected (ie user did not click/expand group)
         if (!recipientList) {
@@ -209,29 +202,6 @@ class AdaptiveCardHelper {
             type: 'AdaptiveCard',
             version: '1.0'
         });
-    }
-
-    // Simple email confirmation modal 
-    static createEmailSentCard() {
-        return CardFactory.adaptiveCard({
-            version: '1.0.0',
-            type: 'AdaptiveCard',
-            body: [
-                {
-                    type: 'TextBlock',
-                    text: 'Your email has been sent.'
-                }
-            ],
-            actions: [
-                {
-                    type: 'Action.Submit',
-                    title: 'Close',
-                    data: {
-                        key: 'close'
-                    }
-                }
-            ]
-        });  
     }
 }
 exports.AdaptiveCardHelper = AdaptiveCardHelper;

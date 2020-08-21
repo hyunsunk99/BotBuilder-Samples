@@ -1,25 +1,20 @@
 # Teams Family Messaging Bot
 
-This Family Messaging bot for Teams builds on [Bot Framework](https://dev.botframework.com) v4 samples to enable educators to access parent/guardian contacts from O365 data populated by School Data Sync (SDS). This app leverages the MS Graph API and prior work by the "Share To Outlook" team to enable calling an OWA modal with SSO authentication and sending an email from the tenant account, all from within Teams. 
+Family Messaging builds on [Bot Framework](https://dev.botframework.com) v4 samples to enable educators to easily access parent/guardian contacts from O365 data populated by School Data Sync (SDS). This app leverages the MS Graph API and prior work by the "Share To Outlook" feature team to embed an SSO-authenticated OWA modal in Teams. This feature allows users to send 1-to-many messages without leaving their workflow in Teams. 
 
 ## Prerequisites
 
 - Microsoft Teams is installed and you have an account
+- Tenant with Office 365 A1 for faculty license (necessary for EDU Roster data queries)
 - [NodeJS](https://nodejs.org/en/)
 - [ngrok](https://ngrok.com/) or equivalent tunnelling solution
 
 ## To try this sample
 
 > Note these instructions are for running the sample on your local machine, the tunnelling solution is required because
-the Teams service needs to call into the bot.
+the Teams service needs to call into the bot.    ```
 
-1) Clone the repository
-
-    ```bash
-    git clone https://github.com/hyunsunk99/botbuilder-samples.git
-    ```
-
-1) In a terminal, navigate to `samples/javascript_nodejs/family-messaging`
+1) In a terminal, navigate to `family-messaging`
 
 1) Install modules
 
